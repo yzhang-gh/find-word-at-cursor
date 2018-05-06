@@ -1,3 +1,5 @@
+[![version](https://img.shields.io/vscode-marketplace/v/yzhang.find-word-at-cursor.svg?style=flat-square)](https://marketplace.visualstudio.com/items?itemName=yzhang.find-word-at-cursor)
+
 Adapted from [findWordAtCursor](https://marketplace.visualstudio.com/items?itemName=mksafi.find-word-at-cursor) by M.K. Safi (@msafi).
 
 Make search a little bit easier.
