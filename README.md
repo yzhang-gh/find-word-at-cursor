@@ -4,7 +4,15 @@ Adapted from [findWordAtCursor](https://marketplace.visualstudio.com/items?itemN
 
 Make search a little bit easier.
 
-## Changes
+**No selection**
+
+![no selection](images/noselection.gif)
+
+**With selection**
+
+![selection](images/selection.gif)
+
+## What differences?
 
 - `Find next` can loop back to the first line when reaching the end of the file
 - Be consistent with <kbd>Ctrl</kbd> + <kbd>D</kbd>
