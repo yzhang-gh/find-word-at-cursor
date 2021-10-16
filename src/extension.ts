@@ -11,5 +11,5 @@ export function activate(context: ExtensionContext) {
 export function deactivate() {
     eventRegistrations.forEach((eventRegistration) => {
         eventRegistration.dispose();
-    })
+    });
 }
