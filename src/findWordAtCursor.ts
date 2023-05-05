@@ -4,7 +4,11 @@ import { Disposable, Position, Range, Selection, TextDocument, TextEditorRevealT
 // highlight behind the word.
 const decorationType = window.createTextEditorDecorationType({
     backgroundColor: new ThemeColor('editor.wordHighlightBackground'),
+    borderColor:     new ThemeColor("editor.wordHighlightBorder"),
 });
+let multiSelectionMatches = [];
+let currentMultiSelectionIndex = 0;
+let prevSelections = [];
 
 // We export eventRegistrations so that we can remove the listeners in `extension.ts` when
 // the extension is deactivated
@@ -35,7 +39,7 @@ function _seek(backward = false) {
         return;
     }
 
-    const { document, selection } = activeTextEditor;
+    const { document, selection, selections } = activeTextEditor;
     const { active, end, start } = selection;
 
     if (!selection.isSingleLine) {
@@ -47,6 +51,7 @@ function _seek(backward = false) {
     // `wholeWords: true; caseSensitive: true`
     //
     const isStrictSearch = selection.isEmpty;
+    const isMultiselection = selections.length > 1;
 
     const needleRange = isStrictSearch ? document.getWordRangeAtPosition(end) : selection;
     if (needleRange === undefined) {
@@ -54,6 +59,45 @@ function _seek(backward = false) {
     }
     const needleCursorOffset = document.offsetAt(active) - document.offsetAt(needleRange.start);
     const needle = document.getText(needleRange);
+    const isMultiselection = selections.length > 1;
+    if (isMultiselection) {
+        // Check if the multiselection changed
+        if (!areSelectionsEqual(selections, prevSelections)) {
+            multiSelectionMatches = [];
+            currentMultiSelectionIndex = 0;
+        }
+
+        // vscode_1.window.showInformationMessage(`Is multi selection: ${selections.length}`);
+        if (multiSelectionMatches.length === 0) {
+            multiSelectionMatches = selections.map((sel) => sel.active).sort((a, b) => a.compareTo(b));
+            currentMultiSelectionIndex = 0;
+        }
+        // vscode_1.window.showInformationMessage(`Multi matches: ${multiSelectionMatches.length}, idx: ${currentMultiSelectionIndex}`);
+
+        if (backward) {
+            currentMultiSelectionIndex = (currentMultiSelectionIndex - 1 + multiSelectionMatches.length) % multiSelectionMatches.length;
+        } else {
+            currentMultiSelectionIndex = (currentMultiSelectionIndex + 1) % multiSelectionMatches.length;
+        }
+
+        const targetPosition = multiSelectionMatches[currentMultiSelectionIndex];
+        const range = document.getWordRangeAtPosition(targetPosition);
+        const selection = new Selection(targetPosition, targetPosition);
+        const needle = document.getText(range);
+        window.showInformationMessage(`needle: ${JSON.stringify(needle)}`);
+        activeTextEditor.revealRange(selection, TextEditorRevealType.InCenterIfOutsideViewport);
+        setTimeout(() => {
+            activeTextEditor.setDecorations(decorationType, [range]);
+        }, 10);
+
+        prevSelections = selections;
+        return;
+    } else {
+        // Reset multiselection state when there's no multiselection
+        multiSelectionMatches = [];
+        currentMultiSelectionIndex = 0;
+    }
+
 
     const foundPosition = searchBySlidingRange(document, needleRange, backward, isStrictSearch);
     const foundRange = document.getWordRangeAtPosition(foundPosition);
@@ -80,6 +124,18 @@ function _seek(backward = false) {
             }, 10);
         }
     }
+}
+
+function areSelectionsEqual(selections1, selections2) {
+    if (selections1.length !== selections2.length) {
+        return false;
+    }
+    for (let i = 0; i < selections1.length; i++) {
+        if (!selections1[i].isEqual(selections2[i])) {
+            return false;
+        }
+    }
+    return true;
 }
 
 function searchBySlidingRange(doc: TextDocument, wordRange: Range, seekBack: boolean, isStrictSearch: boolean): Position {
